@@ -1,0 +1,205 @@
+#include<stdio.h>
+#include<deque>
+using namespace std;
+struct numbering{
+	int m,s; //m: 탐색 번호 s:방향(1,2) 
+};
+numbering t,in;
+struct sides{
+	int n,m; //n: 시작점부터 센 번호  m: 탐색 탄소 번호 
+};
+sides ins,s1,s2;
+deque<int> d[10004]; //연결된 탄소의 번호 입력 
+deque<int> w; //dfs 탐색할 탄소의 번호  
+deque<numbering> num;
+deque<sides> side1, side2; //end1,end2에서 시작했을 때 곁가지 번호 
+int ch[10004],maxx[10004],maxi[10004]; //ch: 탐색한 탄소 체크/maxx: 해당 탄소번호까지 탄소수의 최댓값/maxi: 최대 탄소 개수를 가진 이전 탄소번호 
+int side[10004], chs[10004]; //sdie:해당 탄소번호의 곁가지 여부 , chs:탐색한 곁가지 탄소 번호 체크 
+int chn[5][10004]; //chn: 곁가지 번호 매길 때 해당 번호 탐색 여부 체크 
+int dir[4]={1,2,1};
+int cV[10004],cS[10004];//cV:(countVisit)방문한 횟수 셈 cS:탐색한 곁가지 수 셈 
+char naming[30][30]={{'0'},{'m','e','t','h'},{'e','t','h'},{'p','r','o','p'},{'b','u','t'},{'p','e','n','t'},{'h','e','x'},{'h','e','p','t'},{'o','c','t'},{'n','o','n'},{'d','e','c'},{'u','n','d','e','c'},{'d','o','d','e','c'},{'t','r','i','d','e','c'},{'t','e','t','r','a','d','e','c'},{'p','e','n','t','a','d','e','c'},{'h','e','x','a','d','e','c'},{'h','e','p','t','a','d','e','c'},{'o','c','t','o','d','e','c'},{'n','o','n','a','d','e','c'},{'i','c','o','s'},{'h','e','n','i','c','o','s'},{'d','o','c','o','s'}};
+int alp_num[30]={4,10,22,12,2,21,7,17,6,16,20,1,9,19,8,18,5,15,3,14,13,11}; //각 탄소 개수에 해당하는 이름의 첫글자를 알파벳순으로 정렬한 것 
+deque<int> num_s[30]; //해당 길이의 곁가지 번호 저장 
+int main()
+{
+	int n,a,b,i,j,h,root=0,c=0,length=0,end1=0,end2=0,ign=0,dep=0,max1=0,max2=0,max1i,max2i,chf=0;
+	scanf("%d",&n);
+	for(i=1; i<=n-1; i++){
+		scanf("%d %d",&a,&b);
+		d[a].push_back(b);
+		d[b].push_back(a);
+	}
+	for(i=1; i<=n; i++){
+		if(d[i].size()==1){
+			maxx[i]=1;
+			w.push_back(i);
+		}
+	}
+	while(w.size()!=0){//주사슬 찾기 
+		h=w.front();//h: 현재 탐색할 탄소 번호 
+		w.pop_front();
+		c=0;
+		ch[h]=1;
+//		printf("%d: ",h);
+		for(i=0; i<d[h].size(); i++){
+			if(ch[d[h][i]]==1) continue;
+			c++;
+			if(cS[d[h][i]]==0) cS[d[h][i]]=cS[h];
+//			printf("%d %d\n",maxx[d[h][i]],maxx[h]);
+			if(maxx[d[h][i]]<maxx[h]+1){
+				side[maxi[d[h][i]]]=1; //해당 탄소 번호에 연결된 탄소 중 최대가 아닌 탄소는 곁가지가 된다  
+//				printf("%d %d %d\n",cS[d[h][i]],cS[h],cV[d[h][i]]);
+				cS[d[h][i]]=cS[h]+cV[d[h][i]]; //이전까지 탐색했던 탄소사슬은 곁가지로 취급, 새로 가져온 사슬의 곁가지 수 받아옴 
+				maxx[d[h][i]]=maxx[h]+1;
+				maxi[d[h][i]]=h;
+			}
+			else if(maxx[d[h][i]]==maxx[h]+1){ //탄소 개수 같은 경우 곁가지 많은 사슬 선택 
+				if(cS[maxi[d[h][i]]]+1<cS[h]+cV[d[h][i]]){
+					side[maxi[d[h][i]]]=1;
+					maxi[d[h][i]]=h;
+					cS[d[h][i]]=cS[h]+cV[d[h][i]];
+				}
+				else{
+					side[h]=1;
+				}
+			}
+			else{//지금 탐색한 탄소사슬이 최대가 아니라면 곁가지 추가 
+				cS[d[h][i]]++;
+				side[h]=1;
+			}
+			cV[d[h][i]]++; 
+			if(cV[d[h][i]]==d[d[h][i]].size()-1){ //진행할 길이 하나만 남을 때까지 이전 탄소들을 모두 탐색해야 함 
+				w.push_back(d[h][i]);
+			}
+//			printf("%d %d %d\n",d[h][i],cV[d[h][i]]);
+		}
+		if(c==0){
+			root=h;
+		}
+	}
+	//주사슬 길이
+	//주사슬 찾을 떄 root에 연결된 탄소 중 두번째로 개수가 많은 사슬은 side가 1로 저장됨-> 하지만 이는 곁가지가 아니므로 0으로 바꿈  
+	for(i=0; i<d[root].size(); i++){
+		if(max1<maxx[d[root][i]]){
+			max2=max1;
+			max2i=max1i;
+			max1i=d[root][i];
+			max1=maxx[d[root][i]];
+		}
+		else if(max1==maxx[d[root][i]]&&side[d[root][i]]==0){
+			max2=max1;
+			max2i=max1i;
+			max1i=d[root][i];
+			max1=maxx[d[root][i]];
+		}
+		else if(max2<maxx[d[root][i]]){
+			max2=maxx[d[root][i]];
+			max2i=d[root][i];
+		}
+	}
+	length=max1+max2+1;
+	//루트에 연결된 가지는 주사슬로, side 처리하면 안됨 (0으로 바꾸기 전에는 max1i, max2i중 적어도 하나는 side값이  1로 되어 있음 
+	side[max1i]=0; 
+	side[max2i]=0;
+//	printf("\n%d %d %d %d %d\n",root,max1,max2,max1i,max2i);
+	//주사슬에 대한 곁가지 찾기 및 시작점 찾기 
+	w.push_back(root);
+	while(w.size()!=0){ 
+		h=w.front();
+		w.pop_front();
+		c=0;
+		chs[h]=1;
+		for(i=0; i<d[h].size(); i++){
+			if(chs[d[h][i]]==1) continue;
+			c++;
+			if(side[d[h][i]]==1) side[d[h][i]]++; //주사슬에 대한 곁가지 번호의 side 값을 2로 함 
+			else{
+				w.push_back(d[h][i]);
+			}
+		}
+		if(c==0){
+			if(end1==0) end1=h;
+			else end2=h;
+		}
+	}
+	//곁가지 번호 매기기 (양 방향 동시 탐색) 
+	t.m=end1;
+	t.s=1;
+	num.push_back(t);
+	t.m=end2;
+	t.s=2;
+	num.push_back(t);
+	while(num.size()!=0){
+		t=num.front();
+		num.pop_front();
+		if(t.s==ign) continue;
+		h=t.m;
+		chn[t.s][h]=1;
+		if(t.s==dir[ign]) dep++;
+//		printf("%d %d %d\n",t.s,dep,t.m);
+		for(i=0; i<d[h].size(); i++){
+			if(chn[t.s][d[h][i]]==1) continue;
+			if(side[d[h][i]]==2){
+				ins.m=d[h][i];
+				ins.n=dep;
+				if(t.s==1) side1.push_back(ins);
+				else side2.push_back(ins);
+			}
+			else{
+				in.s=t.s;
+				in.m=d[h][i];
+				num.push_back(in);
+			}
+		}
+		if(t.s==2){ //처음 입력할 때 1방향을 먼저 입력했고, dfs이므로 2방향을 탐색할 때 두 방향 모두에서 같은 깊이 까지 탐색한 것이다. 따라서 방향2 탐색후 곁가지 개수를 비교하면 된다. 
+			if(side1.size()>side2.size()) ign=2;
+			else if(side1.size()<side2.size()) ign=1;
+		}
+	}
+	//곁가지의 번호가 양 방향 모두 같을 때 곁가지길이를 명명한 알파벳의 첫글자가 작은 것을 선택 
+	if(ign==0){
+		for(i=0; i<side1.size(); i++){
+			s1=side1[i];
+			s2=side2[i];
+			if(naming[maxx[s1.m]][0]<naming[maxx[s2.m]][0]) ign=2;
+			else if(naming[maxx[s1.m]][0]>naming[maxx[s2.m]][0]) ign=1;
+			if(ign!=0) break;
+		}
+		if(ign==0) ign=1;
+	}
+	//명명 
+	if(ign==1){
+		for(i=0; i<side2.size(); i++){
+			s2=side2[i];
+			num_s[maxx[s2.m]].push_back(s2.n);
+//			printf("%d-%syl",s2.n,naming[maxx[s2.m]]);
+		}
+	}
+	else{
+		for(i=0; i<side1.size(); i++){
+			s1=side1[i];
+			num_s[maxx[s1.m]].push_back(s1.n);
+//			printf("%d-%syl",s1.n,naming[maxx[s1.m]]);
+		}
+	}
+//	printf("\n");
+	for(i=0; i<22; i++){
+		if(num_s[alp_num[i]].size()==0) continue;
+		for(j=0; j<num_s[alp_num[i]].size(); j++){
+			printf("%d",num_s[alp_num[i]][j]);
+			if(j==num_s[alp_num[i]].size()-1) break;
+			printf(",");
+		}
+		if(chf==0){
+			chf=1;
+			naming[alp_num[i]][0]+='A'-'a';
+		}
+		printf("-%syl",naming[alp_num[i]]);
+	}
+	if(length>22){
+		printf("\n주사슬의 길이는 %d이다.",length); 
+	}
+	else printf("%sane",naming[length]);
+	return 0;
+}
